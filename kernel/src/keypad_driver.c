@@ -54,7 +54,7 @@ static const char key_out[12] = {'1', '2', '3', '4', '5', '6', '7', '8', '9', '*
 
 //busy wait loop for the result to settle
 static void gpio_settle(void){
-    for(volatile i = 0; i < 100; i++);
+    for(volatile int i = 0; i < 100; i++);
 }
 
 //tells us which key was pressed last. Everytime the read
@@ -115,7 +115,7 @@ char keypad_read() {
         gpio_settle();
     }
 
-    char check = keypad_check()
+    char check = keypad_check();
 
     //checks that keypad value has settled and that we're not reading the
     //same key twice
