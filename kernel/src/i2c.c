@@ -28,7 +28,7 @@ struct i2c_reg_map {
 //max_rise_time(ns)/clock_period(ns) + 1
 //1000/62.5 + 1 = 17
 #define TRISE_VAL 17
-#define TRISE_MASK 0x1F
+#define TRISE_MASK 0x3F
 
 #define OAR1_B14 (1<<14)
 
@@ -87,6 +87,7 @@ void i2c_master_start() {
 // stop sequence for I2C transmission
 void i2c_master_stop() {
     i2c->CR1 |= CR1_STOP;
+    while (i2c->CR1 & CR1_STOP);
 }
 
 /* clears AF, releases the bus, and returns the error code */
@@ -138,5 +139,8 @@ int i2c_master_write(uint8_t *buf, uint16_t len, uint8_t slave_addr){
 }
 
 int i2c_master_read(uint8_t *buf, uint16_t len, uint8_t slave_addr){
+    (void) buf;
+    (void) len;
+    (void) slave_addr;
     return 0;
 }

@@ -25,9 +25,13 @@
 #define BUT2_PORT GPIO_B
 #define BUT2_PORTNUM 5
 
-int kernel_main() {
-  //baud is set using a define so parameter doesn't matter
-  
+//LS = light sensor
+#define LS_CHANNEL   0  //using PA0 rn
+#define LS_PRINT_PERIOD 200
+
+#define LCD_NUM_COLS 16
+
+int kernel_main(){ 
   //LEDR(A3 = PB_0)
   gpio_init(LEDR_PORT, LEDR_PORTNUM, MODE_GP_OUTPUT, OUTPUT_PUSH_PULL, OUTPUT_SPEED_LOW, PUPD_NONE, ALT0);
   //set LEDR high for now
@@ -42,52 +46,44 @@ int kernel_main() {
   //Button 2(D4 = PB_5)
   gpio_init(BUT2_PORT, BUT2_PORTNUM, MODE_INPUT, OUTPUT_PUSH_PULL, OUTPUT_SPEED_LOW, PUPD_PULL_UP, ALT0);
 
-  uart_polling_init(USART_BRR);
+  uart_polling_init(USART_BRR); //pause precomputed value for the given baud rate
   keypad_init();
   adc_init();
+  lcd_driver_init();
+
+  uint8_t row = 0;
+  uint8_t col = 0;
+
+  uint32_t cycles = 0;
 
   while (1) {
-        uint16_t light = adc_read_chan(0);
-        printk("Light Sensor Value: %d\n", light);
+    if(cycles >= LS_PRINT_PERIOD){
+      cycles = 0;
+      printk("Light Sensor Value: %d\n", adc_read_chan(LS_CHANNEL));
+    }else{
+      cycles++;
+    }
 
-        /* slow the output down so it's readable in minicom */
-        for (volatile int i = 0; i < 500000; i++);
-  }
-  
-  //below are 3 while loops for checking the keypad, uart, and buttons for
-  //the purposes of checkpoint. This will be modified after checkpoint.
-  
-  //test for keypad
-  printk("keypad test\n");
-  while (1) {
     char key = keypad_read();
-    if (key != '\0') {
-        printk("key: %c\n", key);
+
+    //means no new key presssed
+    if(key == '\0') continue;
+
+    char str[] = {key, '\0'};
+
+    //for printing to lcd with the 3 different categories of presses
+    if(key == '*'){
+      row = !row;
+    } else if (key == '#'){
+      lcd_clear();
+      row = 0;
+      col = 0;
+    } else {
+      lcd_print(str);
+      if (col < LCD_NUM_COLS - 1) col++;
     }
+    lcd_set_cursor(row, col);
   }
-
-  //counter is an arbitrary number of cycles(check that button 1 and 2 work)
-  
-  //counter so gpio_isn't contantly printing to terminal so often
-  /*
-  int counter = 0;
-
-  while(1){
-    if(counter == 10000){
-      int button1 = gpio_read(BUT1_PORT, BUT1_PORTNUM);
-      int button2 = gpio_read(BUT2_PORT, BUT2_PORTNUM);
-      printk("button 1 = %d   button 2 = %d\n", button1, button2);
-      counter = 0;
-    }
-    counter++;
-  }
-
-  //uart test(simply send the key pressed back: use minicom)
-  while(1){
-    char c = uart_polling_get_byte();
-    uart_polling_put_byte(c);
-  }
-    */
 
   return 0;
 }
