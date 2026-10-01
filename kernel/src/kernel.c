@@ -1,5 +1,6 @@
 #include <gpio.h>
 #include <i2c.h>
+#include <adc.h>
 #include <printk.h>
 #include <uart_polling.h>
 #include <unistd.h>
@@ -43,6 +44,15 @@ int kernel_main() {
 
   uart_polling_init(USART_BRR);
   keypad_init();
+  adc_init();
+
+  while (1) {
+        uint16_t light = adc_read_chan(0);
+        printk("Light Sensor Value: %d\n", light);
+
+        /* slow the output down so it's readable in minicom */
+        for (volatile int i = 0; i < 500000; i++);
+  }
   
   //below are 3 while loops for checking the keypad, uart, and buttons for
   //the purposes of checkpoint. This will be modified after checkpoint.
@@ -66,7 +76,7 @@ int kernel_main() {
     if(counter == 10000){
       int button1 = gpio_read(BUT1_PORT, BUT1_PORTNUM);
       int button2 = gpio_read(BUT2_PORT, BUT2_PORTNUM);
-      printk("button 1 = %d   button 2 = %d", button1, button2);
+      printk("button 1 = %d   button 2 = %d\n", button1, button2);
       counter = 0;
     }
     counter++;
