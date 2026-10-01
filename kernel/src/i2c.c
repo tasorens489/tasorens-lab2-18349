@@ -35,6 +35,14 @@ struct i2c_reg_map {
 //i2c pheripheral enable
 #define CR1_PE (1<<0)
 
+#define CR1_START (1<<8)
+#define CR1_STOP (1<<9)
+#define SR1_SB (1<<0)
+#define SR1_ADDR (1<<1)
+#define SR1_AF (1<<10)
+#define SR1_TxE (1<<7)
+#define SR1_BTF (1<<2)
+
 static struct i2c_reg_map *i2c = I2C1_BASE;
 /**
  * @brief initilizes I2C with SCL on D15 and SDA on D14. Sets control regs
@@ -70,26 +78,65 @@ void i2c_master_init(uint16_t clk){
     i2c->CR1 |= CR1_PE;
 }
 
+// start sequence for I2C transmission
 void i2c_master_start() {
-    
+    i2c->CR1 |= CR1_START;
+    while (!(i2c->SR1 & SR1_SB));
 }
 
+// stop sequence for I2C transmission
 void i2c_master_stop() {
-    return;
+    i2c->CR1 |= CR1_STOP;
 }
 
+/* clears AF, releases the bus, and returns the error code */
+static int i2c_nack(void) {
+    i2c->SR1 &= ~SR1_AF;
+    i2c_master_stop();
+    return -1;
+}
+
+/**
+ * @brief write function for i2c
+ * 
+ * @param buf buffer of characters to be sent(start of array)
+ * @param len number of chars to send
+ * @param slave_addr address of slave
+ * 
+ * @return 0 = transmission success, -1 = transmission failed(slave didnt acknowledge)
+ * 
+ */
 int i2c_master_write(uint8_t *buf, uint16_t len, uint8_t slave_addr){
-    (void) buf;
-    (void) len;
-    (void) slave_addr;
+
+    i2c->DR = (slave_addr << 1); //pad with 0 to indicate a write
+    
+    //need to wait for ack or nak
+    while (!(i2c->SR1 & (SR1_ADDR | SR1_AF)));
+
+    //if fail then send a stop bit and indicate a failure of reception
+    if(i2c->SR1 & SR1_AF) return i2c_nack();
+
+    (void)i2c->SR2; //have to read SR2 to clear ADDR bit in SR1
+    
+    for(uint16_t i = 0; i<len; i ++){
+        //have to wait for data reg to clear or for a NAK shows up
+        while (!(i2c->SR1 & (SR1_TxE | SR1_AF)));
+
+        //if fail then send a stop bit and indicate a failure of reception
+        if(i2c->SR1 & SR1_AF) return i2c_nack();
+
+        i2c->DR = buf[i];        
+    }
+    //waits for BTF and TxE to be set or a NAK to come through
+    while(!(((i2c->SR1 &SR1_TxE) && (i2c->SR1 & SR1_BTF)) || (i2c->SR1 & SR1_AF)));
+    
+    if(i2c->SR1 & SR1_AF) return i2c_nack();
+
+    i2c_master_stop();
 
     return 0;
 }
 
 int i2c_master_read(uint8_t *buf, uint16_t len, uint8_t slave_addr){
-    (void) buf;
-    (void) len;
-    (void) slave_addr;
-
     return 0;
 }
