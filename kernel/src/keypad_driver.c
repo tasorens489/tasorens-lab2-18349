@@ -34,6 +34,8 @@
 #define KEYPAD_ROW4_PORT GPIO_A
 #define KEYPAD_ROW4_PIN  7
 
+#define keypad_settle_cycles 20
+
 static const gpio_port keypad_col_ports[3] = {
         KEYPAD_COL1_PORT, KEYPAD_COL2_PORT, KEYPAD_COL3_PORT
 };
@@ -62,14 +64,14 @@ static void gpio_settle(void){
 //if that happens
 static char last_pressed = '\0';
 
+
+//initializes the keypad gpios and sets all the gpios to high to start
+//as scannning pulls each column low and sees which row is low
 void keypad_init() {
     //COL are Output and ROWs are the input for the scanning method
     for (int col = 0; col < 3; col++) {
         gpio_init(keypad_col_ports[col], keypad_col_pins[col], MODE_GP_OUTPUT,
                 OUTPUT_PUSH_PULL, OUTPUT_SPEED_LOW, PUPD_NONE, ALT0);
-        //set all COLs to HIGH so that everything is high in the circuit
-        //to detect a button press we pull a COL low and see if any of
-        //the rows are pulled low aswell
         gpio_set(keypad_col_ports[col], keypad_col_pins[col]);
     }
 
@@ -111,7 +113,7 @@ char keypad_read() {
 
     //used to wait until we can make sure that enough time has settled
     //for the switch to be stable
-    for(int i = 0; i< 100; i++){
+    for(int i = 0; i< keypad_settle_cycles; i++){
         gpio_settle();
     }
 

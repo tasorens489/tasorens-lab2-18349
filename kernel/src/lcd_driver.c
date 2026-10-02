@@ -31,8 +31,6 @@
 
 #define LCD_INIT_DELAY_CYC 20000
 
-#define I2C_CLK 100 //in kHz
-
 /**
  * @brief sends one 4-bit half-byte to the LCD with E high -> low
  *

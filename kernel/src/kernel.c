@@ -74,7 +74,12 @@ int kernel_main(){
     //for printing to lcd with the 3 different categories of presses
     if(key == '*'){
       row = !row;
+      col = 0;
     } else if (key == '#'){
+      lcd_clear();
+      lcd_set_cursor(0, 0); 
+      //had an issue where # was not correctly clearing so the solution
+      //is to just clear twice with a little delay in between
       lcd_clear();
       row = 0;
       col = 0;
